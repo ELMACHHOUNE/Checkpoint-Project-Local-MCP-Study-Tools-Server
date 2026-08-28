@@ -72,32 +72,32 @@ class StudyAgent:
         parsed = self.parse_request(user_request)
         
         if not parsed["tool"]:
-            print(f"❌ Error: {parsed.get('error', 'Unknown error')}")
+            print(f"[ERROR] Error: {parsed.get('error', 'Unknown error')}")
             return {"success": False, "error": parsed.get('error')}
         
-        print(f"✓ Parsed request -> Tool: {parsed['tool']}, Args: {parsed['args']}")
+        print(f"[OK] Parsed request -> Tool: {parsed['tool']}, Args: {parsed['args']}")
         
         if not self.validate_tool(parsed["tool"]):
-            print(f"❌ Error: Tool '{parsed['tool']}' is not allowed")
+            print(f"[ERROR] Error: Tool '{parsed['tool']}' is not allowed")
             return {"success": False, "error": f"Tool '{parsed['tool']}' is not allowed"}
         
-        print(f"✓ Tool '{parsed['tool']}' is allowed")
+        print(f"[OK] Tool '{parsed['tool']}' is allowed")
         
         valid, msg = self.validate_args(parsed["tool"], parsed["args"])
         if not valid:
-            print(f"❌ Validation failed: {msg}")
+            print(f"[ERROR] Validation failed: {msg}")
             return {"success": False, "error": msg}
         
-        print(f"✓ Arguments validated: {msg}")
+        print(f"[OK] Arguments validated: {msg}")
         
         async with stdio_client(self.server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 
-                print(f"🔧 Calling tool '{parsed['tool']}' with args: {parsed['args']}")
+                print(f"[TOOL] Calling tool '{parsed['tool']}' with args: {parsed['args']}")
                 result = await session.call_tool(parsed["tool"], parsed["args"])
                 
-                print(f"✓ Tool executed successfully")
+                print(f"[OK] Tool executed successfully")
                 print(f"\nResult:")
                 print(result.content[0].text)
                 
