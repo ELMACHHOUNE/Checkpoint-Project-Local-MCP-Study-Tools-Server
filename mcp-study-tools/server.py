@@ -1,4 +1,5 @@
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import json
@@ -25,7 +26,14 @@ class ToolError(BaseModel):
     details: Optional[str] = None
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    ),
+)
 def explain_topic(topic: str) -> dict:
     """Explain a study topic in simple terms with examples."""
     if not topic or not topic.strip():
@@ -53,7 +61,14 @@ def explain_topic(topic: str) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    ),
+)
 def create_study_plan(topic: str, days: int) -> dict:
     """Create a structured study plan for a topic over a specified number of days (1-14)."""
     if not topic or not topic.strip():
@@ -97,7 +112,14 @@ def _generate_plan(topic: str, days: int) -> List[dict]:
     return plan
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    ),
+)
 def generate_revision_checklist(topic: str) -> dict:
     """Generate a revision checklist for a study topic."""
     if not topic or not topic.strip():

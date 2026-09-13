@@ -2,9 +2,9 @@
 
 [![M8ven Score](https://m8ven.ai/badge/mcp/elmachhoune/checkpoint-project-local-mcp-study-tools-server)](https://m8ven.ai/mcp/elmachhoune/checkpoint-project-local-mcp-study-tools-server)
 
-A local **Model Context Protocol (MCP) server** providing AI-powered study tools for explaining technical topics, creating personalized study plans, and generating revision checklists.
+A local **Model Context Protocol (MCP) server** built with **Python** and **FastMCP**, providing AI-powered study tools for explaining technical topics, creating personalized study plans, and generating revision checklists.
 
-Built as a checkpoint project to explore **MCP server development, tool design, structured inputs/outputs, and AI-assisted learning workflows**.
+Built as a checkpoint project to explore **MCP server development, tool design, structured inputs/outputs, input validation, and AI-assisted learning workflows**.
 
 ---
 
@@ -12,11 +12,16 @@ Built as a checkpoint project to explore **MCP server development, tool design, 
 
 The server exposes three study-focused MCP tools:
 
-* 📚 **Explain Topic** — Generate a clear explanation of a technical or academic topic.
-* 🗓️ **Create Study Plan** — Generate a structured study plan based on a topic, duration, and learning goals.
-* ✅ **Generate Revision Checklist** — Create a practical checklist for reviewing and preparing a topic.
+* 📚 **Explain Topic** — `explain_topic` — Generate a clear explanation of a technical or academic topic.
+* 🗓️ **Create Study Plan** — `create_study_plan` — Generate a structured study plan based on a topic and a number of days (1–14).
+* ✅ **Generate Revision Checklist** — `generate_revision_checklist` — Create a practical checklist for reviewing and preparing a topic.
 
-The server is designed to run locally and can be connected to MCP-compatible AI clients.
+Plus two read-only MCP **resources**:
+
+* 📄 `project://course-outline` — Course curriculum with modules and topics (JSON).
+* ℹ️ `project://status` — Server status, available tools and resources (JSON).
+
+The server runs locally over **stdio** and can be connected to MCP-compatible AI clients.
 
 ---
 
@@ -26,76 +31,69 @@ The server is designed to run locally and can be connected to MCP-compatible AI 
 
 Provides a structured explanation of a given topic.
 
-**Purpose:**
+**Parameters:**
 
-* Explain technical concepts
-* Simplify complex subjects
-* Provide structured learning material
-* Support self-learning and revision
+| Name    | Type   | Required | Description            |
+| ------- | ------ | -------- | ---------------------- |
+| `topic` | string | Yes      | The topic to explain   |
 
 **Typical input:**
 
 ```json
 {
-  "topic": "React Hooks",
-  "level": "beginner"
+  "topic": "python"
 }
 ```
 
-**Example use cases:**
+**Example output:**
 
-* Explain React Hooks
-* Explain REST APIs
-* Explain database normalization
-* Explain JavaScript closures
-* Explain software engineering concepts
+```json
+{
+  "topic": "python",
+  "explanation": "Python is a high-level, interpreted programming language known for its readability and simplicity. It uses indentation to define code blocks and supports multiple programming paradigms.",
+  "related_topics": ["machine learning", "mcp", "fastapi"]
+}
+```
 
 ---
 
 ### 2. `create_study_plan`
 
-Creates a structured study plan for a specific subject.
+Creates a structured study plan for a specific subject over a number of days.
 
-**Purpose:**
+**Parameters:**
 
-* Break a subject into manageable sessions
-* Organize learning objectives
-* Define a progression through a topic
-* Support structured self-learning
+| Name    | Type | Required | Description                                           |
+| ------- | ---- | -------- | ----------------------------------------------------- |
+| `topic` | str  | Yes      | The topic for the study plan                          |
+| `days`  | int  | Yes      | Number of study days (1–14, out-of-range is clamped)  |
 
 **Typical input:**
 
 ```json
 {
-  "topic": "Full Stack Development",
-  "duration": "4 weeks",
-  "goal": "Build a MERN stack application"
+  "topic": "machine learning",
+  "days": 5
 }
 ```
 
 **Example output structure:**
 
-```text
-Week 1
-├── JavaScript fundamentals
-├── ES6+
-└── Async programming
-
-Week 2
-├── React
-├── Components
-└── State management
-
-Week 3
-├── Node.js
-├── Express
-└── REST APIs
-
-Week 4
-├── MongoDB
-├── Authentication
-└── Deployment
+```json
+{
+  "topic": "machine learning",
+  "days": 5,
+  "study_plan": [
+    { "day": 1, "focus": "Day 1: machine learning fundamentals", "estimated_hours": 2, "activities": ["Read machine learning documentation"] },
+    { "day": 2, "focus": "Day 2: machine learning fundamentals", "estimated_hours": 2, "activities": ["Read machine learning documentation", "Complete machine learning exercises"] },
+    { "day": 3, "focus": "Day 3: machine learning fundamentals", "estimated_hours": 2, "activities": ["Read machine learning documentation", "Complete machine learning exercises", "Build a small machine learning project"] },
+    { "day": 4, "focus": "Day 4: machine learning practice & review", "estimated_hours": 3, "activities": ["Read machine learning documentation", "Complete machine learning exercises", "Build a small machine learning project"] },
+    { "day": 5, "focus": "Day 5: machine learning practice & review", "estimated_hours": 3, "activities": ["Read machine learning documentation", "Complete machine learning exercises", "Build a small machine learning project"] }
+  ]
+}
 ```
+
+> ⚠️ If `days` is outside the 1–14 range, the value is **clamped** and the response includes both a `DAYS_CLAMPED` error object and the adjusted plan.
 
 ---
 
@@ -103,44 +101,46 @@ Week 4
 
 Generates a checklist for reviewing a subject before an assessment, project, or exam.
 
-**Purpose:**
+**Parameters:**
 
-* Identify important concepts to review
-* Organize revision topics
-* Track learning progress
-* Prepare for assessments
+| Name    | Type   | Required | Description                       |
+| ------- | ------ | -------- | --------------------------------- |
+| `topic` | string | Yes      | The topic for the revision checklist |
 
 **Typical input:**
 
 ```json
 {
-  "topic": "JavaScript",
-  "level": "intermediate"
+  "topic": "fastapi"
 }
 ```
 
 **Example output:**
 
-```text
-JavaScript Revision Checklist
-
-- [ ] Variables and data types
-- [ ] Functions
-- [ ] Scope and closures
-- [ ] Arrays and objects
-- [ ] Destructuring
-- [ ] Promises
-- [ ] Async/Await
-- [ ] Error handling
-- [ ] Modules
-- [ ] ES6+ features
+```json
+{
+  "topic": "fastapi",
+  "checklist": [
+    "Understand core concepts of fastapi",
+    "Explain fastapi to someone else in simple terms",
+    "Solve 3 practice problems related to fastapi",
+    "Review common fastapi pitfalls and best practices",
+    "Create a mind map of fastapi connections",
+    "Complete a mini-project using fastapi",
+    "Teach fastapi basics to a peer"
+  ],
+  "total_items": 7,
+  "completion_status": {
+    "Understand core concepts of fastapi": false
+  }
+}
 ```
 
 ---
 
 ## 🏗️ Architecture
 
-The project follows a simple MCP server architecture:
+The project follows a simple MCP server architecture over the **stdio** transport:
 
 ```text
 ┌──────────────────────────────┐
@@ -150,17 +150,26 @@ The project follows a simple MCP server architecture:
 │  MCP-compatible applications │
 └──────────────┬───────────────┘
                │
-               │ MCP
+               │ JSON-RPC 2.0 over stdio
                ▼
 ┌──────────────────────────────┐
 │     Local MCP Server         │
+│        (FastMCP)             │
 │                              │
 │  ┌────────────────────────┐  │
 │  │ explain_topic          │  │
 │  ├────────────────────────┤  │
 │  │ create_study_plan      │  │
 │  ├────────────────────────┤  │
-│  │ revision_checklist     │  │
+│  │ generate_revision_     │  │
+│  │ checklist              │  │
+│  └────────────────────────┘  │
+│                              │
+│  Resources:                  │
+│  ┌────────────────────────┐  │
+│  │ project://course-outline│ │
+│  ├────────────────────────┤  │
+│  │ project://status       │  │
 │  └────────────────────────┘  │
 └──────────────┬───────────────┘
                │
@@ -175,21 +184,13 @@ The project follows a simple MCP server architecture:
 
 ---
 
-## 🎯 Project Objectives
+## 🛠️ Technology Stack
 
-This project was developed to practice and demonstrate:
-
-* Model Context Protocol (MCP)
-* MCP server development
-* MCP tool design
-* Structured tool inputs and outputs
-* AI-assisted learning workflows
-* Local AI integrations
-* Developer tooling
-* Software architecture
-* AI application development
-
-The project also demonstrates how MCP can be used to create specialized tools that extend the capabilities of AI assistants.
+* **Python 3.11+**
+* **Model Context Protocol (MCP)** — official Python SDK (`mcp` package)
+* **FastMCP** — high-level MCP server framework
+* **Pydantic** — input model definitions and validation
+* **stdio transport** — JSON-RPC 2.0 over standard input/output
 
 ---
 
@@ -197,22 +198,14 @@ The project also demonstrates how MCP can be used to create specialized tools th
 
 ### Prerequisites
 
-Make sure you have the following installed:
-
-* **Node.js** 18+
-* **npm**
+* **Python 3.11+**
+* **pip**
 * An MCP-compatible client
 
-You can verify your Node.js installation with:
+You can verify your Python installation with:
 
 ```bash
-node --version
-```
-
-And npm:
-
-```bash
-npm --version
+python --version
 ```
 
 ---
@@ -228,92 +221,65 @@ git clone https://github.com/ELMACHHOUNE/Checkpoint-Project-Local-MCP-Study-Tool
 Navigate to the project:
 
 ```bash
-cd Checkpoint-Project-Local-MCP-Study-Tools-Server
+cd Checkpoint-Project-Local-MCP-Study-Tools-Server/mcp-study-tools
 ```
 
 Install dependencies:
 
 ```bash
-npm install
+pip install "mcp<2"
 ```
 
 ---
 
 ## ▶️ Running the Server
 
-Start the MCP server using the project's configured start command.
-
-For example:
+Run the server in standalone mode:
 
 ```bash
-npm start
+python server.py
 ```
 
-For development:
+Since the server communicates over **stdio**, it is designed to be launched by an MCP client rather than run interactively in a terminal. See [MCP Client Configuration](#-mcp-client-configuration) below.
+
+### Test scripts
+
+Once the server is running, you can exercise it with the included client test:
 
 ```bash
-npm run dev
+python client_test.py
 ```
 
-> The exact command depends on the scripts configured in `package.json`.
+Or with the agent-style demonstration:
+
+```bash
+python agent_demo.py
+```
+
+`client_test.py` connects to the server, lists tools and resources, reads both resources, calls all three tools, and verifies the error-handling and clamping behaviors.
+
+`agent_demo.py` demonstrates a lightweight agent that parses natural-language requests (e.g. *"Explain what is Python"*, *"Create a study plan for machine learning for 10 days"*, *"Generate a revision checklist for FastAPI"*), validates the selected tool and its arguments, and executes it over MCP.
 
 ---
 
 ## 🔌 MCP Client Configuration
 
-The server can be configured in an MCP-compatible client.
-
-A typical configuration follows this structure:
+Add the server to an MCP-compatible client by spawning it like any stdio server. A typical configuration follows this structure:
 
 ```json
 {
   "mcpServers": {
     "study-tools": {
-      "command": "node",
+      "command": "python",
       "args": [
-        "/absolute/path/to/your/project/server.js"
+        "C:\\path\\to\\mcp-study-tools\\server.py"
       ]
     }
   }
 }
 ```
 
-Replace the path with the actual location of the server entry point on your machine.
-
-If the project uses a different runtime or entry file, adapt the configuration accordingly.
-
----
-
-## 🧪 Example Workflow
-
-A typical learning workflow can look like this:
-
-```text
-User
- │
- ▼
-"Teach me React Hooks"
- │
- ▼
-explain_topic
- │
- ▼
-AI-generated explanation
- │
- ▼
-create_study_plan
- │
- ▼
-Structured learning plan
- │
- ▼
-generate_revision_checklist
- │
- ▼
-Revision checklist
-```
-
-This allows the MCP server to act as a small **AI study assistant toolkit**.
+Replace the path with the actual location of `server.py` on your machine.
 
 ---
 
@@ -332,21 +298,16 @@ The study tools are focused on educational content and do not require access to:
 
 The project does not intentionally implement credential collection or sensitive file access.
 
-### Security Verification
+**Server-side protections (see `docs/mcp-checkpoint-report.md`):**
 
-This project has been independently listed and verified by **M8ven**.
+* ✅ **Empty-input protection** — every tool rejects empty `topic` values with a structured `EMPTY_TOPIC` error.
+* ✅ **Range limiting** — `create_study_plan.days` is validated and clamped to 1–14.
+* ✅ **Structured errors** — consistent `{error, code, details}` response format.
+* ✅ **No arbitrary code execution** — tools return predefined/structured data only.
+* ✅ **Read-only resources** — resources expose static data only.
+* ✅ **Tool annotations** — every tool declares explicit `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint` hints so hosts can inform users before invocation.
 
-The M8ven Trust Index currently reports:
-
-* **Code Verified**
-* **No concerning findings**
-* No credential exfiltration detected
-* No sensitive file access detected
-* No obfuscation detected
-
-The verification is based on the project's analyzed Git commits.
-
-[View the M8ven Trust Index listing](https://m8ven.ai/mcp/elmachhoune/checkpoint-project-local-mcp-study-tools-server)
+> ⚠️ **No authentication** — this is a local development/education server, not intended for production or network-exposed deployment.
 
 ---
 
@@ -354,85 +315,40 @@ The verification is based on the project's analyzed Git commits.
 
 [![M8ven Score](https://m8ven.ai/badge/mcp/elmachhoune/checkpoint-project-local-mcp-study-tools-server)](https://m8ven.ai/mcp/elmachhoune/checkpoint-project-local-mcp-study-tools-server)
 
-The project is currently verified through M8ven's **git commit verification** method.
+This project is listed and verified on the **M8ven Trust Index**.
 
-The M8ven listing provides an independent trust and security assessment of the MCP server.
+Current reported status:
 
-> The M8ven score is an external assessment and may change as the project evolves.
+* **Code Verified** — no credential exfiltration, no sensitive file access, no obfuscation
+* **No concerning findings**
 
----
+Per the latest quality suggestions, the following were addressed:
 
-## 🛠️ Technology Stack
+* ✅ `README` describing the server and its tools
+* ✅ `LICENSE` (MIT)
+* ✅ Explicit tool annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) on all tools
 
-Depending on the project implementation, the server is built around:
+[View the M8ven Trust Index listing](https://m8ven.ai/mcp/elmachhoune/checkpoint-project-local-mcp-study-tools-server)
 
-* **Node.js**
-* **JavaScript / TypeScript**
-* **Model Context Protocol (MCP)**
-* **MCP-compatible AI clients**
-* **JSON / structured tool interfaces**
+> The M8ven score is an external assessment and may change as the project evolves. New projects cap at grade C until they build reputation through adoption.
 
 ---
 
 ## 📁 Project Structure
 
-A typical structure for the project is:
-
 ```text
 Checkpoint-Project-Local-MCP-Study-Tools-Server/
 │
-├── src/
-│   ├── tools/
-│   │   ├── explain_topic
-│   │   ├── create_study_plan
-│   │   └── generate_revision_checklist
-│   │
-│   └── server.*
+├── LICENSE                        # MIT License
+├── README.md                      # This file
 │
-├── package.json
-├── README.md
-├── LICENSE
-└── ...
+└── mcp-study-tools/
+    ├── server.py                  # FastMCP server: 3 tools + 2 resources
+    ├── client_test.py             # MCP client test suite
+    ├── agent_demo.py              # Agent-style natural-language demonstration
+    └── docs/
+        └── mcp-checkpoint-report.md  # Full architecture / security writeup
 ```
-
-> The exact structure may vary depending on the current implementation.
-
----
-
-## 🧠 MCP Tools Design
-
-The server follows the MCP concept of exposing focused capabilities as individual tools.
-
-Each tool has a specific responsibility:
-
-| Tool                          | Purpose                 | Side Effects |
-| ----------------------------- | ----------------------- | ------------ |
-| `explain_topic`               | Explain a subject       | None         |
-| `create_study_plan`           | Create a learning plan  | None         |
-| `generate_revision_checklist` | Generate revision items | None         |
-
-The tools are designed to be deterministic from the perspective of their requested educational task and do not intentionally modify external resources.
-
----
-
-## 🔮 Future Improvements
-
-Possible future improvements include:
-
-* [ ] Add complete MCP tool annotations
-* [ ] Add automated tests
-* [ ] Add input validation
-* [ ] Improve structured tool schemas
-* [ ] Add more study tools
-* [ ] Add flashcard generation
-* [ ] Add quiz generation
-* [ ] Add learning-progress tracking
-* [ ] Add resource recommendation tools
-* [ ] Add support for additional MCP clients
-* [ ] Improve error handling
-* [ ] Add CI/CD
-* [ ] Add comprehensive documentation
-* [ ] Add examples for different MCP clients
 
 ---
 
@@ -440,40 +356,12 @@ Possible future improvements include:
 
 Contributions, suggestions, and improvements are welcome.
 
-### 1. Fork the repository
-
-```bash
-git fork
-```
-
-Or fork the repository directly from GitHub.
-
-### 2. Create a branch
-
-```bash
-git checkout -b feature/your-feature
-```
-
-### 3. Make your changes
-
-Implement your feature or improvement.
-
-### 4. Commit your changes
-
-```bash
-git add .
-git commit -m "feat: add new study tool"
-```
-
-### 5. Push your branch
-
-```bash
-git push origin feature/your-feature
-```
-
-### 6. Open a Pull Request
-
-Create a pull request describing your changes and why they are useful.
+1. **Fork** the repository (or clone it directly).
+2. Create a branch: `git checkout -b feature/your-feature`.
+3. Make your changes.
+4. Commit your changes: `git add . && git commit -m "feat: add new study tool"`.
+5. Push your branch: `git push origin feature/your-feature`.
+6. Open a **Pull Request** describing your changes and why they are useful.
 
 ---
 
@@ -497,21 +385,10 @@ Software Engineer • AI Developer • Graphic Designer • Technical Instructor
 
 ---
 
-## ⭐ Support
-
-If you find this project useful:
-
-* ⭐ Star the repository
-* 🐛 Report issues
-* 💡 Suggest improvements
-* 🔀 Submit pull requests
-* 📢 Share the project with other MCP developers
-
----
-
 ## 📚 Related Resources
 
 * [Model Context Protocol](https://modelcontextprotocol.io/)
+* [FastMCP — MCP SDK for Python](https://github.com/modelcontextprotocol/python-sdk)
 * [M8ven Trust Index](https://m8ven.ai/)
 * [M8ven MCP Listing](https://m8ven.ai/mcp/elmachhoune/checkpoint-project-local-mcp-study-tools-server)
 
@@ -521,6 +398,4 @@ If you find this project useful:
 
 **Status:** Active / Educational Project
 
-This project was created as a practical exploration of MCP server development and AI-powered educational tooling.
-
-The implementation may evolve as MCP standards, SDKs, and AI client integrations continue to develop.
+This project was created as a practical exploration of MCP server development and AI-powered educational tooling. The implementation may evolve as MCP standards, SDKs, and AI client integrations continue to develop.
